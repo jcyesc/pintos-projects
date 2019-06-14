@@ -1,0 +1,15 @@
+PINTOS PROJECT
+
+This project contains the source code for Pintos and it also includes the code
+for the diffent operative assignments.
+
+Project 0 - Memory Allocator
+	It consists in creating a memory allocator given a certain piece of memory. The interface
+	that must be implemented is src/prep/memalloc.h.
+	
+	The source code for this project is in:
+	
+		src/prep
+
+
+	

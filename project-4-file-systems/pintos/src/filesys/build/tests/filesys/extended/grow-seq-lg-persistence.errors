@@ -1,0 +1,2 @@
+Use of uninitialized value $avg in numeric ge (>=) at /opt/i386dev/bin/pintos line 907.
+getting tests/filesys/extended/grow-seq-lg.tar failed (scratch disk tar archive ends unexpectedly)

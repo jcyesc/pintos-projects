@@ -1,0 +1,347 @@
+            +---------------------------+
+            |          CS 326           |
+            | PROJECT 3: VIRTUAL MEMORY |
+            |      DESIGN DOCUMENT      |
+            +---------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+Luke Lamonica <lmlamonica@usfca.edu>
+Juan Carlos Yescas <jjyescasquiroz@usfca.edu>
+Ben Kaplan <brkaplan@usfca.edu>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+            PAGE TABLE MANAGEMENT
+            =====================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+The struct frame contains who is the current owner of the frame.
+
+struct frame
+{
+  struct thread *owner;
+  struct condition evicted;
+};
+
+The enum page_type contains the different kind of pages that the could be.
+
+enum page_type
+{
+  EXECUTABLE,
+  MMAP,
+  STACK
+};
+
+The struct supplemental_page contains information about the type of page, how many
+bytes to read from the file, how many bytes to set to zero. It also contains if the page
+is writable, loaded, or swapped.
+
+struct supplemental_page
+{
+  uintptr_t virtual_page_number;  /* Virtual page number that will be the key. */
+  uintptr_t virtual_user_address;
+  uint32_t mapid;
+  uint8_t *kpage;
+  size_t read_bytes;              /* Number of bytes to read from the executable. */
+  size_t zero_bytes;
+  off_t offset;                   /* File offset */
+  bool writable;
+  bool loaded;
+  bool swapped;
+  enum page_type type;
+  struct hash_elem hash_elem;
+  struct swap_slot *slot;
+};
+
+The struct swap_slot contains the information about which frame was swapped and the
+initial sector where the swap slot is.
+
+struct swap_slot
+{
+  struct frame *frame;
+  block_sector_t sector;
+  struct hash_elem elem;
+};
+
+---- ALGORITHMS ----
+
+>> A2: In a few paragraphs, describe your code for locating the frame,
+>> if any, that contains the data of a given page.
+
+When a page fault occurs, the address that caused the fault is analyzed and if it belongs
+to part of the stack, and new page is assigned and a record in the supplemental page is added.
+On the other hand, if the virtal page number that is extracted from the fault address correspond
+to an executable, the information in the supplemental page table is used to read from the respective
+executable file. Another case is when the address that cause the fault correspond to a memory map file,
+in this case, the file is read to a new page.
+
+Below you can find the code for the cases that were just described:
+
+if (sup_page == NULL)
+   {
+      /* It grows the stack. */
+      if (is_valid_fault_address(fault_addr, f->esp, t) && is_user_stack_vaddr(fault_addr))
+        {
+          /* Creating the supplemental page table to store extra page information. */
+          struct supplemental_page *sup_page = malloc(
+              sizeof(struct supplemental_page));
+          sup_page->type = STACK;
+          sup_page->virtual_page_number = pg_no(fault_addr);
+          sup_page->virtual_user_address = (uint32_t) fault_addr & ~PGMASK;
+          sup_page->writable = true;
+          sup_page->swapped = false;
+
+          hash_insert(&t->supplemental_pages, &sup_page->hash_elem);
+          load_stack_page(t, sup_page);
+          return;
+        }
+      /* Exits the process if it's not a valid grow or a valid stack address. */
+      kill();
+   }
+  else
+    {
+      /* It loads the executable or mmap file. */
+      load_page(t, sup_page);
+    }
+
+>> A3: How does your code coordinate accessed and dirty bits between
+>> kernel and user virtual addresses that alias a single frame, or
+>> alternatively how do you avoid the issue?
+
+---- SYNCHRONIZATION ----
+
+>> A4: When two user processes both need a new frame at the same time,
+>> how are races avoided?
+
+---- RATIONALE ----
+
+>> A5: Why did you choose the data structure(s) that you did for
+>> representing virtual-to-physical mappings?
+
+               PAGING TO AND FROM DISK
+               =======================
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+---- ALGORITHMS ----
+
+>> B2: When a frame is required but none is free, some frame must be
+>> evicted.  Describe your code for choosing a frame to evict.
+
+>> B3: When a process P obtains a frame that was previously used by a
+>> process Q, how do you adjust the page table (and any other data
+>> structures) to reflect the frame Q no longer has?
+
+>> B4: Explain your heuristic for deciding whether a page fault for an
+>> invalid virtual address should cause the stack to be extended into
+>> the page that faulted.
+
+---- SYNCHRONIZATION ----
+
+>> B5: Explain the basics of your VM synchronization design.  In
+>> particular, explain how it prevents deadlock.  (Refer to the
+>> textbook for an explanation of the necessary conditions for
+>> deadlock.)
+
+>> B6: A page fault in process P can cause another process Q's frame
+>> to be evicted.  How do you ensure that Q cannot access or modify
+>> the page during the eviction process?  How do you avoid a race
+>> between P evicting Q's frame and Q faulting the page back in?
+
+>> B7: Suppose a page fault in process P causes a page to be read from
+>> the file system or swap.  How do you ensure that a second process Q
+>> cannot interfere by e.g. attempting to evict the frame while it is
+>> still being read in?
+
+>> B8: Explain how you handle access to paged-out pages that occur
+>> during system calls.  Do you use page faults to bring in pages (as
+>> in user programs), or do you have a mechanism for "locking" frames
+>> into physical memory, or do you use some other design?  How do you
+>> gracefully handle attempted accesses to invalid virtual addresses?
+
+---- RATIONALE ----
+
+>> B9: A single lock for the whole VM system would make
+>> synchronization easy, but limit parallelism.  On the other hand,
+>> using many locks complicates synchronization and raises the
+>> possibility for deadlock but allows for high parallelism.  Explain
+>> where your design falls along this continuum and why you chose to
+>> design it this way.
+
+             MEMORY MAPPED FILES
+             ===================
+
+---- DATA STRUCTURES ----
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+
+The struct mmap_info contains the mapid and a pointer to the memory map file.
+
+thread.h
+
+struct mmap_info
+{
+  uintptr_t mapid;                      /* mapid is the virtual address where the file is mapped.*/
+  struct file *mmap_file;               /* Memory mapping file. */
+  struct hash_elem hash_elem;
+};
+
+A new  variable was added to struct thread to keep track of all the memmory mapped files.
+struct hash mmap_ids;
+
+---- ALGORITHMS ----
+
+>> C2: Describe how memory mapped files integrate into your virtual
+>> memory subsystem.  Explain how the page fault and eviction
+>> processes differ between swap pages and other pages.
+
+Basically, the memory mapped files are deacoupled from the memory subsystem in the sense that
+they don't know where the page come from or if it's required to evict a page in order to load the
+file in memory.
+
+When a memory file is going to be mapped, first, we reopen the file an checked the length of
+the file and see if there are not overlaps, after this, we add entries in the supplemental page
+table that keep track of the information about the memory map file. Next, we create a struct mmap_info
+that contains the starting address of the memory mapped file and a pointer to the file.
+
+One the user program tries to access to the file in memory, a page fault is going to be detected and
+the information about the page will be located in the supplemental page. We load the part of the file
+that fits in the requested page, and the user program continues its execution.
+
+When the memory mapped file is ummapped, all the entries in the supplemental page table are deleted.
+The entry for the struct mmap_info is also deleted. Before deleting a supplemental page entry, we
+check if the page was loaded and if there was any modification in the page, if all this holds, we
+dump all the page data to the file, otherwise we just deleted the supplemental page entry.
+
+>> C3: Explain how you determine whether a new file mapping overlaps
+>> any existing segment.
+
+In order to determine if a new file mapping overlaps we need three things: size of the file, starting
+address and supplemental page table. Once we have this information, we start calculating the offsets
+where the next page will be, we check if there is not any entry for that page table number in the
+supplemental page table, if there is not entry, we continue. If at the end we don't find any entry
+in the supplemental page table, then there is not overlapped, otherwise there is.
+
+static bool
+memory_overlap(const void *addr, uint32_t read_bytes, const struct thread *t)
+{
+  /* Get the supplemental table and see if the memory is mapped or not. */
+  uint8_t *upage = addr;
+  struct supplemental_page *sup_page;
+  bool memory_overlap = false;
+  while (read_bytes > 0)
+    {
+      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+
+      sup_page = supplemental_page_lookup(&t->supplemental_pages, pg_no (upage));
+      if (sup_page != NULL)
+        {
+          memory_overlap = true;
+          break;
+        }
+
+      read_bytes -= page_read_bytes;
+      upage += PGSIZE;
+    }
+
+  return memory_overlap;
+}
+
+
+
+---- RATIONALE ----
+
+>> C4: Mappings created with "mmap" have similar semantics to those of
+>> data demand-paged from executables, except that "mmap" mappings are
+>> written back to their original files, not to swap.  This implies
+>> that much of their implementation can be shared.  Explain why your
+>> implementation either does or does not share much of the code for
+>> the two situations.
+
+Due that the need code for demand-page for executables and memory maps files is almost the same,
+the code is shared for these two functionalities. The main difference is where the pointer to the file
+is for the executable and the memory map file. The pointer for the executable is in the struct process_monitor
+and the the pointer for the memory map file is in mmap_info. Another important difference is that
+when a page is released, for the executables we don't have to do any extra work, on the other hand,
+for the memory mapped files we need to check if the page was loaded and if the dirty bit is true, in
+this case, we dump the information to the file.
+
+void
+dump_and_release_mmap(const struct mmap_info *mmap, struct thread *t)
+{
+  uint8_t *upage = mmap->mapid;     /* Initial virtual memory address of the mapping file. */
+  struct supplemental_page *sup_page = supplemental_page_lookup(&t->supplemental_pages, pg_no (upage));
+
+  /* Dump the information to the file. */
+  while (sup_page != NULL && sup_page->mapid == mmap->mapid)
+    {
+      /* If the page was loaded, release the resources. */
+      if (sup_page->loaded)
+        {
+          /* Write the changes only if the page was modified. */
+          if (pagedir_is_dirty(t->pagedir, upage))
+            {
+              file_seek(mmap->mmap_file, sup_page->offset);
+              file_write(mmap->mmap_file, sup_page->virtual_user_address, sup_page->read_bytes);
+            }
+          pagedir_clear_page(t->pagedir, upage);
+          frame_free_frame (sup_page->kpage);
+        }
+      /*Remove the current supplemental entry from the supplemental table. */
+      hash_delete(&t->supplemental_pages, &sup_page->hash_elem);
+      free(sup_page);
+      upage += PGSIZE;
+      sup_page = supplemental_page_lookup(&t->supplemental_pages, pg_no (upage));
+    }
+
+  file_close(mmap->mmap_file);
+}
+
+
+
+
+               SURVEY QUESTIONS
+               ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?

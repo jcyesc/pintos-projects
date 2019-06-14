@@ -1,0 +1,17 @@
+FAIL
+Kernel panic in file system extraction run: PANIC at ../../threads/synch.c:197 in lock_acquire(): assertion `!lock_held_by_current_thread (lock)' failed.
+Call stack: 0xc002784e 0xc00229dc 0xc002cd85 0xc002c3d6 0xc002850d 0xc002c1d3 0xc002cc76 0xc002cfdc 0xc002c413 0xc0028547 0xc002c10d 0xc002bff6 0xc002078e
+Translation of call stack:
+0xc002784e: debug_panic (.../../lib/kernel/debug.c:38)
+0xc00229dc: lock_acquire (...../../threads/synch.c:199)
+0xc002cd85: inode_write_at (...../../filesys/inode.c:430)
+0xc002c3d6: file_write_at (.../../../filesys/file.c:118)
+0xc002850d: bitmap_write (..../lib/kernel/bitmap.c:359)
+0xc002c1d3: free_map_allocate (.../../filesys/free-map.c:35)
+0xc002cc76: inode_extend_sparse_file (...../../filesys/inode.c:511)
+0xc002cfdc: inode_read_at (...../../filesys/inode.c:374)
+0xc002c413: file_read_at (...d/../../filesys/file.c:85)
+0xc0028547: bitmap_read (..../lib/kernel/bitmap.c:348)
+0xc002c10d: free_map_open (.../../filesys/free-map.c:63)
+0xc002bff6: filesys_init (..../../filesys/filesys.c:48)
+0xc002078e: main (.../../../threads/init.c:131)

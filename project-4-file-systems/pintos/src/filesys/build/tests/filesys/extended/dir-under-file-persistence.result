@@ -1,0 +1,2 @@
+FAIL
+tests/filesys/extended/dir-under-file.tar: contains file with empty name

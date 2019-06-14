@@ -1,0 +1,2 @@
+FAIL
+tests/filesys/extended/dir-rm-root.tar: contains file with empty name

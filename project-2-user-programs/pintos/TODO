@@ -1,0 +1,306 @@
+-*- text -*-
+
+* In grading scripts, warn when a fault is caused by an attempt to
+  write to the kernel text segment.  (Among other things we need to
+  explain that "text" means "code".)
+
+* Reconsider command line arg style--confuses everyone.
+
+* Internal tests.
+
+* Godmar: Extend memory leak robustness tests.
+  multi-oom should still pass in project 3/4 because kernel will run out
+  of kernel pool memory before running out of swap space.
+
+* Godmar: Another area is concurrency. I noticed that I had passed all
+  tests with bochs 2.2.1 (in reproducibility mode). Then I ran them
+  with qemu and hit two deadlocks (one of them in rox-*,
+  incidentally). After fixing those deadlocks, I upgraded to bochs
+  2.2.5 and hit yet another deadlock in reproducibility mode that
+  didn't show up in 2.2.1. All in all, a standard grading run would
+  have missed 3 deadlocks in my code.  I'm not sure how to exploit
+  that for grading - either run with qemu n times (n=2 or 3), or run
+  it with bochs and a set of -j parameters.  Some of which could be
+  known to the students, some not, depending on preference.  (I ported
+  the -j patch to bochs 2.2.5 -
+  http://people.cs.vt.edu/~gback/pintos/bochs-2.2.5.jitter.patch but I
+  have to admit I never tried it so I don't know if it would have
+  uncovered the deadlocks that qemu and the switch to 2.2.5
+  uncovered.)
+
+* Godmar: There is also the option to require students to develop test
+  workloads themselves, for instance, to demonstrate the effectiveness
+  of a particular algorithm (page eviction & buffer cache replacement
+  come to mind.) This could involve a problem of the form: develop a
+  workload that you cover well, and develop a "worst-case" load where
+  you algorithm performs poorly, and show the results of your
+  quantitative evaluation in your report - this could then be part of
+  their test score.
+
+* Godmar: the spec says that illegal syscall arguments can be handled either by
+  terminating the process, or by returning an error code such as -1.
+
+    Looking at http://gback.cs.vt.edu:8080/source/xref/tests/userprog/write-bad-ptr.c
+    and http://gback.cs.vt.edu:8080/source/xref/tests/userprog/write-bad-ptr.ck
+    I'm wondering if write-bad-ptr isn't forcing them to terminate the
+    process(?). Even though write-bad-ptr.ck has a provision to allow
+    continuation after returning -1, wouldn't it still fail since the test
+    executes:
+    fail ("should have exited with -1");
+    ?
+
+* Godmar: mmap-inherit needs a IGNORE_USER_FAULTS since we say to "not output
+    any messages Pintos doesn't already print." - which technically puts
+    the onus on us to ignore the default page fault msg whenever a test is
+    expected to fault.
+
+* Godmar: add _end to user.lds script and construct some tests that fail
+    unless students check a region for validity rather than just the first
+    address of a region. Right now, unfortunately, they pass all p2 tests
+    with just checking the first address. [A possible problem is that the
+    tests may be unable to tell termination due to unintentional fault
+    from willful termination when address check fails. Should we require
+    they return -1/EINVAL on a bad address and disallow termination? Or
+    construct a test that they'll likely fail if they unintentionally
+    terminate, maybe while holding the filesystem lock? Or require that
+    the diagnostic message only be output when fault occurs in user mode?
+    Something to think about.]
+
+* Threads project:
+
+  - Godmar:
+
+    >> Describe a potential race in thread_set_priority() and explain how
+    >> your implementation avoids it.  Can you use a lock to avoid this race?
+
+    I'm not sure what you're getting at here:
+    If changing the priority of a thread involves accessing the ready
+    list, then of course there's a race with interrupt handlers and locks
+    can't be used to resolve it.
+
+    Changing the priority however also involves a race with respect to
+    accessing a thread's "priority" field - this race is with respect to
+    other threads that attempt to donate priority to the thread that's
+    changing its priority. Since this is a thread-to-thread race, I would
+    tend to believe that locks could be used, although I'm not certain.  [
+    I should point out, though, that lock_acquire currently disables
+    interrupts - the purpose of which I had doubted in an earlier email,
+    since sema_down() sufficiently establishes mutual exclusion. Taking
+    priority donation into account, disabling interrupts prevents the race
+    for the priority field, assuming the priority field of each thread is
+    always updated with interrupts disabled. ]
+
+    What answer are you looking for for this design document question?
+
+  - Godmar: Another thing: one group passed all tests even though they
+    wake up all waiters on a lock_release(), rather than just
+    one. Since there's never more than one waiter in our tests, they
+    didn't fail anything. Another possible TODO item - this could be
+    part a series of "regression tests" that check that they didn't
+    break basic functionality in project 1. I don't think this would
+    be insulting to the students.
+
+* Userprog project:
+
+  - Get rid of rox--causes more trouble than it's worth
+
+  - Extra credit: specifics on how to implement sbrk, malloc.
+    Godmar: I have a sample solution and tests for that!  Stay tuned.
+
+  - Godmar: We're missing tests that pass arguments to system calls
+    that span multiple pages, where some are mapped and some are not.
+    An implementation that only checks the first page, rather than all
+    pages that can be touched during a call to read()/write() passes
+    all tests.
+
+  - Godmar: There does not appear to be a test that checks that they
+    close all fd's on exit.  Idea: add statistics & self-diagnostics
+    code to palloc.c and malloc.c.  Self-diagnostics code could be
+    used for debugging.  The statistics code would report how much
+    kernel memory is free.  Add a system call
+    "get_kernel_memory_information".  User programs could engage in a
+    variety of activities and notice leaks by checking the kernel
+    memory statistics. 
+    - note: multi-oom tests that now.
+
+  - Godmar: In the wait() tests, there's currently no test that tests
+    that a process can only wait for its own children. There's only
+    one test that tests that wait() on an invalid pid returns -1 (or
+    kills the process), but no test where a valid pid is used that is
+    not a child of the current process.
+
+    The current tests also do not ensure that both scenarios (parent waits
+    first vs. child exits first) are exercised. In this context, I'm
+    wondering if we should add a sleep() system call that would export
+    timer_sleep() to user processes; this would allow the construction of
+    such a test. It would also make it easier to construct a test for the
+    valid-pid, but not-a-child scenario.
+
+    As in Project 4, the baseline implementation of timer_sleep() should
+    suffice, so this would not necessarily require basing Project 2 on
+    Project 1. [ A related thought: IMO it would not be entirely
+    unreasonable to require timer_sleep() and priority scheduling sans
+    donation from Project 1 working for subsequent projects. ]
+
+* VM project:
+
+  - Godmar: Get rid of mmap syscall, add sbrk.
+
+  - Godmar: page-linear, page-shuffle VM tests do not use enough
+    memory to force eviction.  Should increase memory consumption.
+
+  - Godmar: fix the page* tests to require swapping
+
+  - Godmar: make sure the filesystem fails if not properly
+    concurrency-protected in project 3.
+
+  - Godmar: Another area in which tests could be created are for
+    project 3: tests that combine mmap with a paging workload to see
+    their kernel pages properly while mmapping pages - I don't think
+    the current tests test that, do they?
+
+* Filesys project:
+
+  - Need a better way to measure performance improvement of buffer
+    cache.  Some students reported that their system was slower with
+    cache--likely, Bochs doesn't simulate a disk with a realistic
+    speed.
+
+    (Perhaps we should count disk reads and writes, not time.)
+
+  - Need lots more tests.
+
+  - Detect implementations that represent the cwd as a string, by
+    removing a directory that is the cwd of another process, then
+    creating a new directory of the same name and putting some files
+    in it, then checking whether the process that had it as cwd sees
+    them.
+
+  - dir-rm-cwd should have a related test that uses a separate process
+    to try to pin the directory as its cwd.
+
+  - Godmar: I'm not sure if I mentioned that already, but I passed all
+    tests for the filesys project without having implemented inode
+    deallocation. A test is needed that checks that blocks are
+    reclaimed when files are deleted.
+
+  - Godmar: I'm in the middle of project 4, I've started by
+    implementing a buffer cache and plugging it into the existing
+    filesystem.  Along the way I was wondering how we could test the
+    cache.
+
+    Maybe one could adopt a similar testing strategy as in project 1
+    for the MLQFS scheduler: add a function that reads
+    "get_cache_accesses()" and a function "get_cache_hits()".  Then
+    create a version of pintos that creates access traces for a
+    to-be-determined workload.  Run an off-line analysis that would
+    determine how many hits a perfect cache would have (MAX), and how
+    much say an LRU strategy would give (MIN).  Then add a fudge
+    factor to account for different index strategies and test that the
+    reported number of cache hits/accesses is within (MIN, MAX) +/-
+    fudge factor.
+
+    (As an aside - I am curious why you chose to use a clock-style
+    algorithm rather than the more straightforward LRU for your buffer
+    cache implementation in your sample solution. Is there a reason
+    for that?  I was curious to see if it made a difference, so I
+    implemented LRU for your cache implementation and ran the test
+    workload of project 4 and printed cache hits/accesses.  I found
+    that for that workload, the clock-based algorithm performs almost
+    identical to LRU (within about 1%, but I ran nondeterministally
+    with QEMU). I then reduced the cache size to 32 blocks and found
+    again the same performance, which raises the suspicion that the
+    test workload might not force any cache replacement, so the
+    eviction strategy doesn't matter.)
+
+  - Godmar: I haven't analyzed the tests for project 4 yet, but I'm
+    wondering if the fairness requirements your specification has for
+    readers/writers are covered in the tests or not.
+
+
+* Documentation:
+
+  - Add "Digging Deeper" sections that describe the nitty-gritty x86
+    details for the benefit of those interested.
+
+  - Add explanations of what "real" OSes do to give students some
+    perspective.
+
+* To add partition support:
+
+  - Find four partition types that are more or less unused and choose
+    to use them for Pintos.  (This is implemented.)
+
+  - Bootloader reads partition tables of all BIOS devices to find the
+    first that has the "Pintos kernel" partition type.  (This is
+    implemented.)  Ideally the bootloader would make sure there is
+    exactly one such partition, but I didn't implement that yet.
+
+  - Bootloader reads kernel into memory at 1 MB using BIOS calls.
+    (This is implemented.)
+
+  - Kernel arguments have to go into a separate sector because the
+    bootloader is otherwise too big to fit now?  (I don't recall if I
+    did anything about this.)
+
+  - Kernel at boot also scans partition tables of all the disks it can
+    find to find the ones with the four Pintos partition types
+    (perhaps not all exist).  After that, it makes them available to
+    the rest of the kernel (and doesn't allow access to other devices,
+    for safety).
+
+  - "pintos" and "pintos-mkdisk" need to write a partition table to
+    the disks that they create.  "pintos-mkdisk" will need to take a
+    new parameter specifying the type.  (I might have partially
+    implemented this, don't remember.)
+
+  - "pintos" should insist on finding a partition header on disks
+    handed to it, for safety.
+
+  - Need some way for "pintos" to assemble multiple disks or
+    partitions into a single image that can be copied directly to a
+    USB block device.  (I don't know whether I came up with a good
+    solution yet or not, or whether I implemented any of it.)
+
+* To add USB support:
+
+    - Needs to be able to scan PCI bus for UHCI controller.  (I
+      implemented this partially.)
+
+    - May want to be able to initialize USB controllers over CardBus
+      bridges.  I don't know whether this requires additional work or
+      if it's useful enough to warrant extra work.  (It's of special
+      interest for me because I have a laptop that only has USB via
+      CardBus.)
+
+    - There are many protocol layers involved: SCSI over USB-Mass
+      Storage over USB over UHCI over PCI.  (I may be forgetting one.)
+      I don't know yet whether it's best to separate the layers or to
+      merge (some of) them.  I think that a simple and clean
+      organization should be a priority.
+
+    - VMware can likely be used for testing because it can expose host
+      USB devices as guest USB devices.  This is safer and more
+      convenient than using real hardware for testing.
+
+    - Should test with a variety of USB keychain devices because there
+      seems to be wide variation among them, especially in the SCSI
+      protocols they support.  Should try to use a "lowest-common
+      denominator" SCSI protocol if any such thing really exists.
+
+    - Might want to add a feature whereby kernel arguments can be
+      given interactively, rather than passed on-disk.  Needs some
+      though.
+
+==========================================================================
+============================== COMPLETED TASKS ===========================
+==========================================================================
+
+* Godmar: Introduce memory leak robustness tests - both for the
+  well-behaved as well as the mis-behaved case - that tests that the
+  kernel handles low-mem conditions well.
+
+    - handled by new multi-oom.
+
+* Godmar: improved priority inheritance tests (see priority-donate-chain)
+

@@ -1,0 +1,8 @@
+FAIL
+Kernel panic in file system extraction run: PANIC at ../../filesys/free-map.c:64 in free_map_open(): can't read free map
+Call stack: 0xc002784e 0xc002c12a 0xc002bff6 0xc002078e
+Translation of call stack:
+0xc002784e: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002c12a: free_map_open (.../../filesys/free-map.c:65)
+0xc002bff6: filesys_init (..../../filesys/filesys.c:48)
+0xc002078e: main (.../../../threads/init.c:131)

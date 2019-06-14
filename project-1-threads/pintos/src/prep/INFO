@@ -1,0 +1,22 @@
+Memory allocator
+
+This folder contains the code from a user level memory allocator. The files involve in
+this functionality are:
+	
+	memalloc.c
+	memalloc.h
+	main_memalloc.c
+	test_mem.c
+	makeTest
+	Makefile
+
+In addition to the memory allocator, this file contains useful information about accessing
+blocks of memory, calculating offsets from structures and using the Pintos linked list.
+
+	list_example.c
+	listordered.c
+	listtest.c
+	offset.c
+	sizes.c
+
+

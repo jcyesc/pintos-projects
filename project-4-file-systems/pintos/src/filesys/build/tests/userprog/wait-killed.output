@@ -1,0 +1,38 @@
+Copying tests/userprog/wait-killed to scratch partition...
+Copying tests/userprog/child-bad to scratch partition...
+qemu -hda /var/folders/zx/0r00xqls37vd7j6h8kvwqkf40000gn/T/yIN8EXffk3.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run wait-killed
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  157,081,600 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 180 sectors (90 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'wait-killed' into the file system...
+Putting 'child-bad' into the file system...
+Erasing ustar archive...
+Executing 'wait-killed':
+(wait-killed) begin
+(child-bad) begin
+child-bad: exit(-1)
+(wait-killed) wait(exec()) = -1
+(wait-killed) end
+wait-killed: exit(0)
+Execution of 'wait-killed' complete.
+Timer: 59 ticks
+Thread: 0 idle ticks, 57 kernel ticks, 2 user ticks
+hda2 (filesys): 355 reads, 190 writes
+hda3 (scratch): 179 reads, 2 writes
+Console: 1014 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...

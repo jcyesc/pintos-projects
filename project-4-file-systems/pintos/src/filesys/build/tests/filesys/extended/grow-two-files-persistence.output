@@ -1,0 +1,29 @@
+qemu -hda /var/folders/zx/0r00xqls37vd7j6h8kvwqkf40000gn/T/DmvvZa3DVH.dsk -hdb tmp.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q run 'tar fs.tar /' append fs.tar
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  130,867,200 loops/s.
+hda: 3,024 sectors (1 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 2,048 sectors (1 MB), Pintos scratch (22)
+hdb: 5,040 sectors (2 MB), model "QM00002", serial "QEMU HARDDISK"
+hdb1: 4,096 sectors (2 MB), Pintos file system (21)
+filesys: using hdb1
+scratch: using hda2
+Kernel PANIC at ../../threads/synch.c:197 in lock_acquire(): assertion `!lock_held_by_current_thread (lock)' failed.
+Call stack: 0xc002784e 0xc00229dc 0xc002cd85 0xc002c3d6 0xc002850d 0xc002c1d3 0xc002cc76 0xc002cfdc 0xc002c413 0xc0028547 0xc002c10d 0xc002bff6 0xc002078e.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Timer: 54 ticks
+Thread: 0 idle ticks, 54 kernel ticks, 0 user ticks
+hdb1 (filesys): 4 reads, 0 writes
+hda2 (scratch): 0 reads, 0 writes
+Console: 1092 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...
+Copying tests/filesys/extended/grow-two-files.tar out of /var/folders/zx/0r00xqls37vd7j6h8kvwqkf40000gn/T/DmvvZa3DVH.dsk...

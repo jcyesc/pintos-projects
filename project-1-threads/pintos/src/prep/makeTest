@@ -1,0 +1,56 @@
+#########################################################################
+#
+# HOW TO RUN THIS MAKE FILE
+#
+# make -f makeTest 
+#
+# Note: GCC compiler options
+#
+#    -I dir
+#       Add the directory dir to the list of directories to be  searched for
+#		header filees. Directories named by -I are searched before the standard
+#		system include directories.
+#
+#    -Wall
+#       Turns on all optional warnings which are desirable for normal code.
+#
+#    -g
+#		It generates extra debug data for the GDB debugger.
+#
+#########################################################################
+
+all: run
+
+LIBDIR=../lib
+KERNELDIR=$(LIBDIR)/kernel
+SOURCES=sizes.c $(KERNELDIR)/list.c
+SOURCES2=listtest.c $(KERNELDIR)/list.c $(LIBDIR)/string.c
+SOURCES3=list_example.c $(KERNELDIR)/list.c $(LIBDIR)/string.c
+SOURCES4=memalloc.c main_memalloc.c $(KERNELDIR)/list.c $(LIBDIR)/string.c
+SOURCES5=test_mem.c memalloc.c $(KERNELDIR)/list.c $(LIBDIR)/string.c
+
+#run: offset
+#run: listtest
+run: list_example
+#run: memalloc
+#run: sizes
+#run: test_mem
+	./a.out
+
+offset: offset.c
+	gcc -o a.out offset.c
+
+sizes: $(SOURCES)
+	gcc -I $(LIBDIR) -I $(KERNELDIR) -o a.out $(SOURCES)
+
+listtest: $(SOURCES2)
+	gcc -I $(LIBDIR) -I $(KERNELDIR) -o a.out $(SOURCES2)
+
+list_example: $(SOURCES3)
+	gcc -I $(LIBDIR) -I $(KERNELDIR) -o a.out $(SOURCES3)
+
+memalloc: $(SOURCES4)
+	gcc -I $(LIBDIR) -I $(KERNELDIR) -o a.out $(SOURCES4)
+
+test_mem: $(SOURCES5)
+	gcc -I $(LIBDIR) -I $(KERNELDIR) -o a.out $(SOURCES5)

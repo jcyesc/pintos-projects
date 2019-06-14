@@ -1,0 +1,49 @@
+Copying tests/filesys/extended/dir-rm-cwd to scratch partition...
+Copying tests/filesys/extended/tar to scratch partition...
+qemu -hda /var/folders/zx/0r00xqls37vd7j6h8kvwqkf40000gn/T/cHBOETCw2O.dsk -hdb tmp.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run dir-rm-cwd
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  152,166,400 loops/s.
+hda: 1,008 sectors (504 kB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 204 sectors (102 kB), Pintos scratch (22)
+hdb: 5,040 sectors (2 MB), model "QM00002", serial "QEMU HARDDISK"
+hdb1: 4,096 sectors (2 MB), Pintos file system (21)
+filesys: using hdb1
+scratch: using hda2
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'dir-rm-cwd' into the file system...
+Putting 'tar' into the file system...
+Erasing ustar archive...
+Executing 'dir-rm-cwd':
+(dir-rm-cwd) begin
+(dir-rm-cwd) open "/"
+(dir-rm-cwd) mkdir "a"
+(dir-rm-cwd) open "/a"
+(dir-rm-cwd) verify "/a" is empty
+(dir-rm-cwd) "/" and "/a" must have different inumbers
+(dir-rm-cwd) chdir "a"
+(dir-rm-cwd) try to remove "/a"
+(dir-rm-cwd) remove successful
+(dir-rm-cwd) open "/a" (must fail)
+(dir-rm-cwd) open "." (must fail)
+(dir-rm-cwd) open ".." (must fail)
+(dir-rm-cwd) create "x" (must fail)
+(dir-rm-cwd) verify "/a" is empty
+(dir-rm-cwd) end
+dir-rm-cwd: exit(0)
+Execution of 'dir-rm-cwd' complete.
+Timer: 63 ticks
+Thread: 0 idle ticks, 60 kernel ticks, 3 user ticks
+hdb1 (filesys): 541 reads, 220 writes
+hda2 (scratch): 203 reads, 2 writes
+Console: 1418 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...
